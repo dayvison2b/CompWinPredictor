@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+from config import settings, constants
 
 def setup_driver(chrome_driver_path):
     # Create a Chrome options object
@@ -36,7 +37,7 @@ def get_summoner_on_leaderboard(driver):
 
 def get_summoner_match_history(driver, summoner_name):
     # Build the URL for the summoner's match history
-    match_history_url = f"https://www.op.gg/summoners/br/{summoner_name}"
+    match_history_url = f"{constants.HISTORY_URL}{summoner_name}"
     navigate_to_url(driver, match_history_url)
     
     try:
@@ -77,11 +78,11 @@ def get_summoner_match_history(driver, summoner_name):
 
 def main():
     # Replace with the actual path to the chromedriver executable
-    chrome_driver_path = 'C:\Program Files\Google\Chrome\Application\chromedriver.exe'  # Replace with the actual path
+    chrome_driver_path = settings.chrome_driver_path  # Replace with the actual path
     driver = setup_driver(chrome_driver_path)
     
     # Define the URL of the op.gg leaderboard and region
-    url = 'https://www.op.gg/leaderboards/' # You can specify the rank as well
+    url = constants.LEADERBOARD_URL # You can specify the rank as well
     navigate_to_url(driver, url)
     
     try:
