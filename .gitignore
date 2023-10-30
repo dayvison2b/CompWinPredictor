@@ -7,3 +7,4 @@ venv/
 *.pyd
 *.db
 .env
+scraper/bkp.py
