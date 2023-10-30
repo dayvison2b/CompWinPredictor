@@ -3,14 +3,12 @@ from sqlite3 import Error
 
 def create_connection(db_file):
     """Create a database connection to the SQLite database specified by db_file."""
-    connection = None
-    
     try:
         connection = sqlite3.connect(db_file)
         return connection
     except Error as e:
         print(e)
-        return connection
+        return
 
 def create_table(connection, query):
     """Create a table from the create_table_sql statement."""
