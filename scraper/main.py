@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+import time
 from config import settings, constants
 
 def setup_driver(chrome_driver_path):
@@ -83,6 +84,7 @@ def main():
     
     # Define the URL of the op.gg leaderboard and region
     url = constants.LEADERBOARD_URL # You can specify the rank as well
+    start_time = time.time()
     navigate_to_url(driver, url)
     
     try:
@@ -94,7 +96,12 @@ def main():
     summoner_names = get_summoner_on_leaderboard(driver)
     
     for summoner_name in summoner_names:
+        summoner_start_time = time.time()
         get_summoner_match_history(driver, summoner_name)
+        print(f"O tempo levado para obter o histório do jogador {summoner_name} foi {time.time() - summoner_start_time:2f} segundos.")
+        
+    print(f'Tempo de processamento: {time.time() - start_time:2f} segundos.')
+    
         
     # Close the Selenium web driver when done
     driver.quit()
