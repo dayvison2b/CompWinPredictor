@@ -98,7 +98,7 @@ def main():
     for summoner_name in summoner_names:
         summoner_start_time = time.time()
         get_summoner_match_history(driver, summoner_name)
-        print(f"O tempo levado para obter o histório do jogador {summoner_name} foi {time.time() - summoner_start_time:2f} segundos.")
+        print(f"O tempo levado para obter o histórico do jogador {summoner_name} foi {time.time() - summoner_start_time:2f} segundos.")
         
     print(f'Tempo de processamento: {time.time() - start_time:2f} segundos.')
     
