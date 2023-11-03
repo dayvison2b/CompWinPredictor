@@ -1,3 +1,13 @@
+import sys
+import os
+
+# Obtém o diretório atual do script
+current_dir = os.path.dirname(os.path.realpath(__file__))
+
+# Adiciona o diretório raiz ao sys.path
+root_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.append(root_dir)
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -6,6 +16,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 import time
 from config import settings, constants
+from database import database
 
 def setup_driver(chrome_driver_path):
     # Create a Chrome options object
@@ -36,7 +47,7 @@ def get_summoner_on_leaderboard(driver):
     summoner_names = [entry.split('\n')[1] for entry in summoner_data]
     return summoner_names
 
-def get_summoner_match_history(driver, summoner_name):
+def get_summoner_match_history(driver, summoner_name,connection):
     # Build the URL for the summoner's match history
     match_history_url = f"{constants.HISTORY_URL}{summoner_name}"
     navigate_to_url(driver, match_history_url)
@@ -74,6 +85,12 @@ def get_summoner_match_history(driver, summoner_name):
         loser_champions = [champion.find_element(By.CSS_SELECTOR, 'td.champion img').get_attribute("alt") for champion in loser_team.find_elements(By.CSS_SELECTOR, 'tr.overview-player--LOSE')]
         winner_champions = [champion.find_element(By.CSS_SELECTOR, 'td.champion img').get_attribute("alt") for champion in winner_team.find_elements(By.CSS_SELECTOR, 'tr.overview-player--WIN')]
 
+        # Inserting data
+        match_date = '2023-11-03'
+        match_duration = '20:00'
+        match_rank = 'Challenger'
+        database.insert_match_data(connection, match_date, match_duration, match_rank, winner_champions, loser_champions)
+        
         print("Loser Champions:", loser_champions)
         print("Winner Champions:", winner_champions)
 
@@ -87,6 +104,8 @@ def main():
     start_time = time.time()
     navigate_to_url(driver, url)
     
+    connection = database.create_connection('database/CompWinPredictor.db')
+    
     try:
         wait_for_element(driver, 'tr.css-rmp2x6')
     except TimeoutException:
@@ -97,7 +116,7 @@ def main():
     
     for summoner_name in summoner_names:
         summoner_start_time = time.time()
-        get_summoner_match_history(driver, summoner_name)
+        get_summoner_match_history(driver, summoner_name, connection)
         print(f"O tempo levado para obter o histórico do jogador {summoner_name} foi {time.time() - summoner_start_time:2f} segundos.")
         
     print(f'Tempo de processamento: {time.time() - start_time:2f} segundos.')
