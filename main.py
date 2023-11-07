@@ -1,13 +1,17 @@
+import joblib
 import sqlite3
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import LabelEncoder
-import joblib
 from sklearn.metrics import accuracy_score, classification_report
 
-# Preparing the data
+K_NEIGHBORS = 5  # Valor de k (número de vizinhos)
+
 def load_data():
+    """
+    Load data from the SQLite database and return it as a Pandas DataFrame.
+    """
     connection = sqlite3.connect('database/CompWinPredictor.db')
     
     query = """
@@ -21,52 +25,52 @@ def load_data():
     return data
 
 def preprocess_data(data, encoders=None):
-    # Initialize encoders dictionary if not provided
+    """
+    Preprocess the data by encoding 'match_rank' and save the encoders for future use.
+    """
     if encoders is None:
         encoders = {}
-
-    # Encode 'match_rank' feature
+    
     if 'match_rank' not in encoders:
         encoder = LabelEncoder()
         encoder.fit(data['match_rank'])
         encoders['match_rank'] = encoder
         data['match_rank'] = encoder.transform(data['match_rank'])
-
-    # Save the encoders for future use
-    joblib.dump(encoders, 'label_encoders.pkl')
+        joblib.dump(encoders, 'label_encoders.pkl')
 
     return data
 
 def split_data(data):
-    # Dividir os dados em conjuntos de treinamento e teste
+    """
+    Split the data into training and testing sets.
+    """
     X = data[['match_rank', 'champion_id']]
     y = data['team']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     return X_train, X_test, y_train, y_test
 
-# Passo 2: Modelagem
-def train_knn(X_train, y_train, k=5):
-    # Treinar o modelo KNN
+def train_knn(X_train, y_train, k=K_NEIGHBORS):
+    """
+    Train a KNN model with the given number of neighbors.
+    """
     knn = KNeighborsClassifier(n_neighbors=k)
     knn.fit(X_train, y_train)
     return knn
 
-# Passo 3: Avaliação do Modelo
 def evaluate_model(knn, X_test, y_test):
-    # Fazer previsões
+    """
+    Evaluate the KNN model and print accuracy and classification report.
+    """
     y_pred = knn.predict(X_test)
-    
-    # Calcular a acurácia do modelo
     accuracy = accuracy_score(y_test, y_pred)
-    print("Acurácia do modelo:", accuracy)
-    
-    # Exibir relatório de classificação
-    print("Relatório de Classificação:")
+    print("Model Accuracy:", accuracy)
+    print("Classification Report:")
     print(classification_report(y_test, y_pred))
 
-# Passo 4: Previsões
 def make_predictions(knn, X_new):
-    # Fazer previsões para novas partidas
+    """
+    Make predictions for new matches using the trained KNN model.
+    """
     predictions = knn.predict(X_new)
     return predictions
 
@@ -75,21 +79,16 @@ def main():
     data = preprocess_data(data)
     X_train, X_test, y_train, y_test = split_data(data)
     
-    # Escolha o valor de k (número de vizinhos) - ajuste conforme necessário
-    k = 5
-    knn = train_knn(X_train, y_train, k)
-    
+    knn = train_knn(X_train, y_train, k=K_NEIGHBORS)
     evaluate_model(knn, X_test, y_test)
     
-    # Passo 5: Previsões
-    # Substitua os valores abaixo pelos atributos das partidas futuras
     new_matches = pd.DataFrame({
-        'match_rank': [0],  # Exemplo de valores para a patente da partida
-        'champion_id': [64]  # Exemplo de IDs dos campeões
+        'match_rank': [0],  # Example values for match rank
+        'champion_id': [64]  # Example champion IDs
     })
     
     new_predictions = make_predictions(knn, new_matches)
-    print("Previsões para as novas partidas:", new_predictions)
+    print("Predictions for new matches:", new_predictions)
 
 if __name__ == "__main__":
     main()
