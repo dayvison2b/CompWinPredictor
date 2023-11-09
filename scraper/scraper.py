@@ -15,6 +15,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 import time
+import re
+from datetime import datetime, timedelta
 from config import settings, constants
 from database import database
 
@@ -47,6 +49,36 @@ def get_summoner_on_leaderboard(driver):
     summoner_names = [entry.split('\n')[1] for entry in summoner_data]
     return summoner_names
 
+def convert_relative_time_to_date(relative_time):
+    match = re.search(r'há (\d+|\w+) (\w+)', relative_time)
+
+    if match:
+        value_raw, unit = match.group(1), match.group(2).lower()
+
+        if value_raw.isdigit():
+            value = int(value_raw)
+        elif value_raw.lower() in ['um','uma']:
+            value = 1
+        else:
+            raise ValueError(f"Invalid numerical value: {value_raw}")
+
+        if unit.startswith('h'):  # hours
+            delta = timedelta(hours=value)
+        elif unit.startswith('min'):  # minutes
+            delta = timedelta(minutes=value)
+        elif unit.startswith('dia'):  # days
+            delta = timedelta(days=value)
+        elif unit.startswith('mês'):  # months (approximate)
+            delta = timedelta(days=30 * value)
+        else:
+            raise ValueError(f"Unsupported time unit: {unit}")
+
+        absolute_date = datetime.now() - delta
+        return absolute_date
+
+    else:
+        raise ValueError("Invalid relative time format")
+
 def get_summoner_match_history(driver, summoner_name,connection):
     # Build the URL for the summoner's match history
     match_history_url = f"{constants.HISTORY_URL}{summoner_name}"
@@ -65,6 +97,13 @@ def get_summoner_match_history(driver, summoner_name,connection):
     for match in matches:
         wait_for_element(match, 'button.detail')
         button = match.find_element(By.CSS_SELECTOR, 'button.detail')
+        
+        match_date = match.find_element(By.CSS_SELECTOR, 'div.time-stamp')
+        match_date_text = match_date.text
+        match_date = convert_relative_time_to_date(match_date_text)
+        
+        match_duration = match.find_element(By.CSS_SELECTOR, 'div.length').text
+        
         driver.execute_script("arguments[0].click()", button)
 
         try:
@@ -86,10 +125,8 @@ def get_summoner_match_history(driver, summoner_name,connection):
         winner_champions = [champion.find_element(By.CSS_SELECTOR, 'td.champion img').get_attribute("alt") for champion in winner_team.find_elements(By.CSS_SELECTOR, 'tr.overview-player--WIN')]
 
         # Inserting data
-        match_date = '2023-11-03'
-        match_duration = '20:00'
         match_rank = 'Challenger'
-        database.insert_match_data(connection, match_date, match_duration, match_rank, winner_champions, loser_champions)
+        database.insert_match_data(connection, match_date, match_duration, match_rank, winner_champions, loser_champions,summoner_name)
         
         print("Loser Champions:", loser_champions)
         print("Winner Champions:", winner_champions)

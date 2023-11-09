@@ -65,7 +65,7 @@ def main():
     evaluate_model(knn, X_test, y_test)
     
     new_matches = pd.DataFrame({
-        'match_rank': [0],  # Example values for match rank
+        'match_rank': [1],  # Example values for match rank
         'champion_id': [64]  # Example champion IDs
     })
     

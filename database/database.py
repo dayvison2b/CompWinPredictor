@@ -12,15 +12,14 @@ def create_connection(db_file):
         print(e)
         return
 
-def drop_existing_database(database_name):
+def check_existing_database(database_name):
     database_name = database_name.split('/')[-1]
     try:
         script_directory = os.path.dirname(os.path.abspath(__file__))
         file_path = os.path.join(script_directory, database_name)
 
         if os.path.exists(file_path):
-            os.remove(file_path)
-            print(f"Database '{file_path}' exists and has been deleted.")
+            return True
     except Exception as e:
         print(e)
         return e
@@ -46,14 +45,14 @@ def insert_data(connection, query, data):
         print(e)
         return
     
-def insert_match_data(connection, match_date, match_duration, match_rank, winner_champions, loser_champions):
+def insert_match_data(connection, match_date, match_duration, match_rank, winner_champions, loser_champions, summoner_name):
     with open('utils/champions.json') as json_file:
         champions_data = json.load(json_file)
     cursor = connection.cursor()
     cursor.execute('''
-                   INSERT INTO matches (match_date, match_duration, match_rank)
-                   VALUES(?,?,?)
-                   ''', (match_date, match_duration, match_rank))
+                   INSERT INTO matches (match_date, match_duration, match_rank, match_summoner)
+                   VALUES(?,?,?,?)
+                   ''', (match_date, match_duration, match_rank, summoner_name))
     connection.commit()
     
     match_id = None
@@ -64,9 +63,11 @@ def insert_match_data(connection, match_date, match_duration, match_rank, winner
     for champion_name in winner_champions:
         # Insere a relação entre a partida e o campeão
         for champ_id, champ_name in champions_data.items():
-            if champ_name == champion_name.replace("'",'').replace(" ",''):
+            if champ_name.lower() == champion_name.replace("'",'').replace(" ",'').lower():
                 champion_id = champ_id
                 break
+        if not champ_id:
+            raise(f"{champion_name} not found in champions.json")
         cursor.execute('''
         INSERT INTO match_champions (match_id, champion_id, team)
         VALUES (?, ?, ?)
@@ -88,22 +89,25 @@ def insert_match_data(connection, match_date, match_duration, match_rank, winner
     
 def main():
     database_name = 'database/CompWinPredictor.db'
-    try:
-        drop_existing_database(database_name)
-    except Exception as e:
-        print(e)
-        return e
-    
     connection = create_connection(database_name)
     cursor = connection.cursor()
     
+    if check_existing_database(database_name):
+        cursor.execute('''
+                       DROP TABLE matches
+                       ''')
+        cursor.execute('''
+                       DROP TABLE match_champions
+                       ''')
+        
     # Tabela de Partidas (matches)
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS matches (
         match_id INTEGER PRIMARY KEY,
         match_date VARCHAR,
         match_duration VARCHAR,
-        match_rank VARCHAR
+        match_rank VARCHAR,
+        match_summoner VARCHAR
     )
     ''')
 
