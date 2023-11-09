@@ -1,12 +1,11 @@
-import joblib
 import sqlite3
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, classification_report
 
 K_NEIGHBORS = 5  # Valor de k (número de vizinhos)
+#Parei aqui
 
 def load_data():
     """
@@ -15,29 +14,13 @@ def load_data():
     connection = sqlite3.connect('database/CompWinPredictor.db')
     
     query = """
-    SELECT matches.match_rank, CASE WHEN match_champions.team = 'WIN' THEN 1 ELSE 0 END AS team, champions.champion_id
+    SELECT CASE WHEN matches.match_rank = 'Challenger' THEN 1 ELSE 0 end AS match_rank, CASE WHEN match_champions.team = 'WIN' THEN 1 ELSE 0 END AS team, champions.champion_id
     FROM matches
     JOIN match_champions ON matches.match_id = match_champions.match_id
     JOIN champions ON match_champions.champion_id = champions.champion_id
     """
     data = pd.read_sql_query(query, connection)
     connection.close()
-    return data
-
-def preprocess_data(data, encoders=None):
-    """
-    Preprocess the data by encoding 'match_rank' and save the encoders for future use.
-    """
-    if encoders is None:
-        encoders = {}
-    
-    if 'match_rank' not in encoders:
-        encoder = LabelEncoder()
-        encoder.fit(data['match_rank'])
-        encoders['match_rank'] = encoder
-        data['match_rank'] = encoder.transform(data['match_rank'])
-        joblib.dump(encoders, 'label_encoders.pkl')
-
     return data
 
 def split_data(data):
@@ -76,7 +59,6 @@ def make_predictions(knn, X_new):
 
 def main():
     data = load_data()
-    data = preprocess_data(data)
     X_train, X_test, y_train, y_test = split_data(data)
     
     knn = train_knn(X_train, y_train, k=K_NEIGHBORS)
